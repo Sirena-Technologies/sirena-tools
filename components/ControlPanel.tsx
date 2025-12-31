@@ -1,117 +1,213 @@
 
 import React from 'react';
+import { IndividualServoState, isMXServo, getMaxAngle, getCenterAngle, CommandFormat } from '../types';
 
 interface ControlPanelProps {
-  angle: number;
-  onAngleChange: (val: number) => void;
-  velocity: number;
-  onVelocityChange: (val: number) => void;
-  onSend: () => void;
+  servos: IndividualServoState[];
+  onUpdateServo: (index: number, updates: Partial<IndividualServoState>) => void;
+  onSend: (index?: number) => void;
   connected: boolean;
   onInterrupt: () => void;
+  commandFormat: CommandFormat;
+  onCommandFormatChange: (format: CommandFormat) => void;
 }
 
 const ControlPanel: React.FC<ControlPanelProps> = ({
-  angle,
-  onAngleChange,
-  velocity,
-  onVelocityChange,
+  servos,
+  onUpdateServo,
   onSend,
   connected,
   onInterrupt,
+  commandFormat,
+  onCommandFormatChange,
 }) => {
-  // Quantize for display logic if needed, but let parent handle command value
-  const displayAngle = Math.round(angle / 5) * 5;
-
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-xl p-8 space-y-8 relative overflow-hidden">
-      <div className="absolute top-0 left-0 w-1 h-full bg-red-600"></div>
-      
-      <section>
-        <div className="flex justify-between items-end mb-6">
+    <div className="bg-[#f0f0f0] te-border rounded-lg p-4 flex flex-col gap-4 shadow-sm h-[420px]">
+      <div className="flex flex-col gap-2 px-2">
+        <div className="flex justify-between items-center">
           <div>
-            <label className="text-xs font-black text-gray-400 uppercase tracking-widest block mb-1">Servo Orientation</label>
-            <h3 className="text-sm font-bold text-gray-800">Target Angle</h3>
+            <h2 className="text-[10px] font-black uppercase tracking-widest text-[#555]">02 Control Matrix</h2>
+            <p className="text-[8px] font-bold text-[#aaa] uppercase">Individual Servo Parameter Mapping</p>
           </div>
-          <div className="flex items-baseline gap-1">
-            <span className="text-3xl font-black text-red-600 leading-none">{displayAngle}</span>
-            <span className="text-sm font-bold text-red-300">°</span>
+          <div className="flex gap-2">
+             <button 
+               onClick={() => onSend()} 
+               disabled={!connected}
+               className="px-4 py-1.5 te-key text-[9px] font-black uppercase tracking-widest te-orange"
+             >
+               Broadcast All
+             </button>
+             <button 
+               onClick={onInterrupt} 
+               disabled={!connected}
+               className="px-4 py-1.5 te-key text-[9px] font-black uppercase tracking-widest text-red-500"
+             >
+               Break
+             </button>
           </div>
         </div>
-        <div className="px-2">
-          <input 
-            type="range"
-            min="0"
-            max="360"
-            step="5"
-            value={angle}
-            onChange={(e) => onAngleChange(parseInt(e.target.value))}
-            className="w-full h-3 bg-gray-100 rounded-full appearance-none cursor-pointer accent-red-600 hover:accent-red-700 transition-all border border-gray-200"
-          />
+        <div className="flex items-center gap-2">
+          <span className="text-[7px] font-bold text-[#888] uppercase">Cmd Format:</span>
+          <div className="flex gap-1">
+            <button
+              onClick={() => onCommandFormatChange('batch')}
+              className={`text-[7px] font-black uppercase px-2 py-0.5 rounded te-border transition-all ${
+                commandFormat === 'batch'
+                  ? 'bg-[#ff4d00] text-white'
+                  : 'bg-[#fafafa] text-[#888] hover:bg-white'
+              }`}
+              title="Batch: id1:id2:...:pos1:pos2:...:vel1:vel2:..."
+            >
+              Batch
+            </button>
+            <button
+              onClick={() => onCommandFormatChange('interleaved')}
+              className={`text-[7px] font-black uppercase px-2 py-0.5 rounded te-border transition-all ${
+                commandFormat === 'interleaved'
+                  ? 'bg-[#ff4d00] text-white'
+                  : 'bg-[#fafafa] text-[#888] hover:bg-white'
+              }`}
+              title="Interleaved: id:pos:vel:id:pos:vel:..."
+            >
+              Interleaved
+            </button>
+            <button
+              onClick={() => onCommandFormatChange('separate')}
+              className={`text-[7px] font-black uppercase px-2 py-0.5 rounded te-border transition-all ${
+                commandFormat === 'separate'
+                  ? 'bg-[#ff4d00] text-white'
+                  : 'bg-[#fafafa] text-[#888] hover:bg-white'
+              }`}
+              title="Separate: one command per servo"
+            >
+              Separate
+            </button>
+          </div>
         </div>
-        <div className="flex justify-between text-[10px] font-bold text-gray-300 mt-3 px-3">
-          <span>0°</span>
-          <span>180°</span>
-          <span>360°</span>
-        </div>
-      </section>
+      </div>
 
-      <section>
-        <div className="flex justify-between items-end mb-6">
-          <div>
-            <label className="text-xs font-black text-gray-400 uppercase tracking-widest block mb-1">Dynamixel Velocity</label>
-            <h3 className="text-sm font-bold text-gray-800">Movement Speed</h3>
-          </div>
-          <div className="flex items-baseline gap-1">
-            <span className="text-2xl font-black text-slate-800 leading-none">{velocity}</span>
-          </div>
-        </div>
-        <div className="px-2">
-          <input 
-            type="range"
-            min="0"
-            max="1023"
-            step="1"
-            value={velocity}
-            onChange={(e) => onVelocityChange(parseInt(e.target.value))}
-            className="w-full h-3 bg-gray-100 rounded-full appearance-none cursor-pointer accent-slate-800 hover:accent-slate-900 transition-all border border-gray-200"
-          />
-        </div>
-        <div className="flex justify-between text-[10px] font-bold text-gray-300 mt-3 px-3">
-          <span>IDLE</span>
-          <span>MAX (1023)</span>
-        </div>
-      </section>
+      <div className="flex-1 overflow-x-auto overflow-y-hidden flex gap-3 pb-4">
+        {servos.map((s, idx) => {
+          const angleMode = s.angleMode || (isMXServo(s.servoType) ? '360' : undefined);
+          const maxAngle = getMaxAngle(s.servoType, angleMode);
+          const centerAngle = getCenterAngle(s.servoType, angleMode);
+          // Calculate rotation: center angle is 0° rotation
+          // Map angle to rotation: 0° → +center, center → 0°, max → -center
+          const rotation = centerAngle - s.angle;
+          
+          return (
+          <div key={idx} className="w-40 shrink-0 bg-white te-border rounded-lg flex flex-col p-2.5 shadow-inner">
+             <div className="flex justify-between items-start mb-3">
+                <div>
+                   <span className="text-[7px] font-black text-[#aaa] uppercase">Servo Unit</span>
+                   <h3 className="text-base font-black tracking-tighter mono">#{s.id.toString().padStart(2, '0')}</h3>
+                   <div className="flex gap-1 mt-0.5">
+                     <span className="text-[6px] font-bold text-[#aaa] uppercase">{s.servoType || 'AX-12A'}</span>
+                     <span className="text-[6px] font-bold text-[#aaa]">ID:{s.servoId || 1}</span>
+                   </div>
+                </div>
+                <button 
+                  onClick={() => onSend(idx)}
+                  disabled={!connected}
+                  className="w-7 h-7 rounded-full te-border flex items-center justify-center text-[9px] hover:te-bg-orange hover:text-white transition-all relative"
+                  style={{ transform: `rotate(${rotation}deg)` }}
+                >
+                  ↑
+                </button>
+             </div>
 
-      <div className="flex flex-col gap-3 pt-4">
-        <button 
-          onClick={onSend}
-          disabled={!connected}
-          className={`group relative w-full py-4 rounded-xl text-sm font-black uppercase tracking-widest transition-all shadow-lg overflow-hidden ${
-            connected 
-            ? 'bg-red-600 text-white hover:bg-red-700 active:scale-95 shadow-red-200' 
-            : 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200 shadow-none'
-          }`}
-        >
-          <span className="relative z-10 flex items-center justify-center gap-2">
-            Update Servos
-            <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-            </svg>
-          </span>
-        </button>
-        
-        <button 
-          onClick={onInterrupt}
-          disabled={!connected}
-          className={`w-full py-3 rounded-xl text-xs font-bold transition-all border uppercase tracking-wider ${
-            connected 
-            ? 'border-red-100 text-red-500 hover:bg-red-50 active:scale-95' 
-            : 'border-transparent text-transparent pointer-events-none'
-          }`}
-        >
-          Send Interrupt (Ctrl+C)
-        </button>
+             <div className="flex-1 flex flex-col gap-5">
+                {isMXServo(s.servoType) && (
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="text-[6px] font-bold text-[#888] uppercase">Range:</span>
+                    <button
+                      onClick={() => {
+                        if (angleMode === '300') return; // Already in 300 mode
+                        // Convert angle when switching modes to maintain relative position
+                        const currentPercent = s.angle / maxAngle;
+                        const newMaxAngle = getMaxAngle(s.servoType, '300');
+                        const newAngle = Math.round(currentPercent * newMaxAngle);
+                        onUpdateServo(idx, { angleMode: '300', angle: newAngle });
+                      }}
+                      className={`text-[7px] font-black uppercase px-2 py-0.5 rounded te-border transition-all ${
+                        angleMode === '300' 
+                          ? 'bg-[#ff4d00] text-white' 
+                          : 'bg-[#fafafa] text-[#888] hover:bg-white'
+                      }`}
+                    >
+                      300°
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (angleMode === '360') return; // Already in 360 mode
+                        // Convert angle when switching modes to maintain relative position
+                        const currentPercent = s.angle / maxAngle;
+                        const newMaxAngle = getMaxAngle(s.servoType, '360');
+                        const newAngle = Math.round(currentPercent * newMaxAngle);
+                        onUpdateServo(idx, { angleMode: '360', angle: newAngle });
+                      }}
+                      className={`text-[7px] font-black uppercase px-2 py-0.5 rounded te-border transition-all ${
+                        angleMode === '360' 
+                          ? 'bg-[#ff4d00] text-white' 
+                          : 'bg-[#fafafa] text-[#888] hover:bg-white'
+                      }`}
+                    >
+                      360°
+                    </button>
+                  </div>
+                )}
+                
+                <div className="flex flex-col gap-2">
+                   <div className="flex justify-between items-baseline">
+                      <span className="text-[8px] font-bold text-[#888] uppercase">Angle</span>
+                      <span className="text-[10px] font-black mono">{s.angle}°</span>
+                   </div>
+                   <input 
+                      type="range" min="0" max={maxAngle} step="1"
+                      value={s.angle}
+                      onChange={(e) => onUpdateServo(idx, { angle: parseInt(e.target.value) })}
+                      className="w-full h-1 bg-[#f0f0f0] rounded-full appearance-none cursor-pointer accent-[#ff4d00]"
+                      style={{ transform: 'scaleX(-1)' }}
+                   />
+                </div>
+
+                <div className="flex flex-col gap-2">
+                   <div className="flex justify-between items-baseline">
+                      <span className="text-[8px] font-bold text-[#888] uppercase">Velocity</span>
+                      <span className="text-[10px] font-black mono">{s.velocity}</span>
+                   </div>
+                   <input 
+                      type="range" min="0" max="1023" step="1"
+                      value={s.velocity}
+                      onChange={(e) => onUpdateServo(idx, { velocity: parseInt(e.target.value) })}
+                      className="w-full h-1 bg-[#f0f0f0] rounded-full appearance-none cursor-pointer accent-[#1a1a1a]"
+                   />
+                </div>
+                
+                <div className="mt-auto grid grid-cols-2 gap-1">
+                   <button 
+                     onClick={() => onUpdateServo(idx, { angle: centerAngle })}
+                     className="text-[7px] font-black uppercase p-1 te-border rounded bg-[#fafafa] hover:bg-white"
+                   >
+                     Reset
+                   </button>
+                   <button 
+                     onClick={() => onUpdateServo(idx, { angle: 0 })}
+                     className="text-[7px] font-black uppercase p-1 te-border rounded bg-[#fafafa] hover:bg-white"
+                   >
+                     Zero
+                   </button>
+                </div>
+             </div>
+          </div>
+          );
+        })}
+        {/* Placeholder for adding more servos if count < 20 */}
+        {servos.length < 20 && (
+          <div className="w-12 shrink-0 flex items-center justify-center">
+             <div className="w-px h-full bg-[#d1d1d1] opacity-30"></div>
+          </div>
+        )}
       </div>
     </div>
   );

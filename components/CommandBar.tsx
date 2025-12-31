@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 
 interface CommandBarProps {
@@ -18,31 +17,22 @@ const CommandBar: React.FC<CommandBarProps> = ({ onSend, connected }) => {
   };
 
   return (
-    <div className="bg-white border-t border-gray-100 p-4 shrink-0">
-      <form onSubmit={handleSend} className="max-w-5xl mx-auto flex gap-3">
-        <div className="relative flex-1">
-          <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-            <span className="text-gray-400 font-mono text-sm">TX&gt;</span>
-          </div>
-          <input 
-            type="text"
-            placeholder={connected ? "Enter manual command..." : "Connect to serial port to send commands"}
-            value={cmd}
-            onChange={(e) => setCmd(e.target.value)}
-            disabled={!connected}
-            className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 pl-12 pr-4 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-red-500 disabled:bg-gray-50 disabled:text-gray-300"
-          />
-        </div>
+    <div className="bg-[#f0f0f0] border-t border-[#d1d1d1] p-3 shrink-0">
+      <form onSubmit={handleSend} className="flex gap-2">
+        <input 
+          type="text"
+          placeholder={connected ? "Enter command..." : "Waiting for connection..."}
+          value={cmd}
+          onChange={(e) => setCmd(e.target.value)}
+          disabled={!connected}
+          className="flex-1 bg-white te-border rounded-sm py-2 px-3 text-[11px] mono text-[#1a1a1a] focus:outline-none focus:ring-1 focus:ring-[#ff4d00] disabled:bg-[#e8e8e8]"
+        />
         <button 
           type="submit"
           disabled={!connected || !cmd.trim()}
-          className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${
-            connected && cmd.trim()
-            ? 'bg-gray-900 text-white hover:bg-black active:scale-95'
-            : 'bg-gray-100 text-gray-400'
-          }`}
+          className="px-6 py-2 te-key text-[10px] font-black uppercase tracking-widest"
         >
-          Send
+          Execute
         </button>
       </form>
     </div>
